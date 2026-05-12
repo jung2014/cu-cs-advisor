@@ -854,7 +854,7 @@ function _renderSectionPicker(code, credits, sections) {
       <td><div style="font-family:var(--mono);font-size:10px;color:var(--muted)">${mtg}</div>${conflictWarn}</td>
       <td><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${sc}">${score!=null?score.toFixed(1):"—"}</span></td>
       <td>
-        <span style="font-family:var(--mono);font-size:11px;color:${(s.seats_available||0)>0?'var(--green)':'var(--red)'}">${s.seats_available||"?"}/${s.seats_total||"?"}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:${(s.seats_available??0)>0?'var(--green)':'var(--red)'}">${s.seats_available??'?'}/${s.seats_total??'?'}</span>
         ${s.seats_live?`<span style="font-size:9px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);border-radius:3px;padding:1px 4px;margin-left:3px;vertical-align:middle">live</span>`:`<span style="font-size:9px;color:var(--muted);margin-left:2px;vertical-align:middle" title="Snapshot from last scrape">~</span>`}
       </td>
       <td><span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${isSel?'var(--green)':'var(--bg)'};color:${isSel?'#fff':'var(--muted)'};border:1px solid ${isSel?'var(--green)':'var(--border2)'}">${isSel?'✓ Pinned':'Pin'}</span></td>
