@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.config import GROQ_API_URL, GROQ_MODEL, MAX_TOKENS
 from backend.transcript import parse_transcript
 from backend.audit_parser import parse_audit
+from backend.cu_api import fetch_live_seats
 from backend.data_loader import (
     load_all_data,
     get_sections_for_course,
@@ -41,6 +42,20 @@ app.add_middleware(
 )
 
 DATA = load_all_data()
+
+_seat_cache: dict[str, tuple[float, dict]] = {}
+_SEAT_TTL = 300
+
+def _get_seats(crn: str, subject: str, snapshot: dict) -> tuple[dict, bool]:
+    now = time.time()
+    cached = _seat_cache.get(crn)
+    if cached and now - cached[0] < _SEAT_TTL:
+        return cached[1], True
+    live = fetch_live_seats(crn, subject)
+    if live:
+        _seat_cache[crn] = (now, live)
+        return live, True
+    return snapshot, False
 
 
 # ── Request / Response models ─────────────────────────────────────────────────
@@ -956,11 +971,19 @@ async def course_detail_endpoint(req: CourseDetailRequest):
             "options": any_of, "met": any(c in all_taken for c in any_of), "type": "any_of"
         })
 
+    subject = code.split()[0] if " " in code else code[:4]
     sections_out = []
     for s in lec_sections:
         score = s.get("professor_score")
         linked_crns = {x.strip() for x in str(s.get("linked_crns", "")).split(",") if x.strip()}
         linked_labs = [lb for lb in lab_sections if str(lb.get("crn", "")) in linked_crns] or lab_sections
+        crn_str = str(s.get("crn", ""))
+        snapshot_seats = {
+            "seats_available": s.get("seats_available", 0),
+            "seats_total": s.get("seats_total", 0),
+            "waitlist": s.get("waitlist", 0),
+        }
+        seats, seats_live = _get_seats(crn_str, subject, snapshot_seats)
         sections_out.append({
             "crn": s.get("crn"), "section": s.get("section"),
             "type": s.get("section_type", "LEC"),
@@ -971,9 +994,10 @@ async def course_detail_endpoint(req: CourseDetailRequest):
             "fcq_metrics": s.get("professor_metrics", {}),
             "resp_rate": s.get("professor_avg_resp_rate"),
             "meetings": s.get("meetings", []),
-            "seats_available": s.get("seats_available", 0),
-            "seats_total": s.get("seats_total", 0),
-            "waitlist": s.get("waitlist", 0),
+            "seats_available": seats["seats_available"],
+            "seats_total": seats["seats_total"],
+            "waitlist": seats["waitlist"],
+            "seats_live": seats_live,
             "labs": [{
                 "crn": lb.get("crn"), "section": lb.get("section"),
                 "type": lb.get("section_type"), "meetings": lb.get("meetings", []),
