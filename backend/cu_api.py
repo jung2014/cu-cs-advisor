@@ -16,6 +16,46 @@ def _parse_seats_html(html: str) -> tuple[int, int, int]:
     )
 
 
+_LEVEL_MAP = {"lower": "UGRD_LOWER", "upper": "UGRD_UPPER"}
+
+def fetch_hss_courses(level: str = "all") -> list[dict]:
+    levels = ["lower", "upper"] if level == "all" else [level]
+    seen: set = set()
+    courses: list = []
+    for lv in levels:
+        criteria = [
+            {"field": "career_or_level", "value": _LEVEL_MAP[lv]},
+            {"field": "engrgened_HSS",    "value": "Y"},
+        ]
+        payload = {"other": {"srcdb": CURRENT_TERM_CODE}, "criteria": criteria}
+        try:
+            resp = requests.post(
+                CU_API_URL,
+                params={"page": "fose", "route": "search"},
+                headers=CU_API_HEADERS,
+                data=json.dumps(payload),
+                timeout=15,
+            )
+            if resp.status_code != 200:
+                continue
+            for r in resp.json().get("results", []):
+                code = r.get("code", "")
+                if not code or code in seen:
+                    continue
+                seen.add(code)
+                courses.append({
+                    "code":       code,
+                    "title":      r.get("title", ""),
+                    "meets":      r.get("meets", ""),
+                    "instructor": r.get("instr", ""),
+                    "level":      lv,
+                })
+        except Exception:
+            continue
+    courses.sort(key=lambda x: x["code"])
+    return courses
+
+
 def fetch_live_seats(crn: str, subject: str) -> dict | None:
     payload = {
         "group":   f"code:{subject} {crn}",

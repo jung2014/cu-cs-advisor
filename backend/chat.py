@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.config import GROQ_API_URL, GROQ_MODEL, MAX_TOKENS
 from backend.transcript import parse_transcript
 from backend.audit_parser import parse_audit
-from backend.cu_api import fetch_live_seats
+from backend.cu_api import fetch_live_seats, fetch_hss_courses
 from backend.data_loader import (
     load_all_data,
     get_sections_for_course,
@@ -1033,6 +1033,13 @@ async def course_detail_endpoint(req: CourseDetailRequest):
 
 class AuditRequest(BaseModel):
     text: str
+
+@app.get("/hss-courses")
+async def hss_courses_endpoint(level: str = "all"):
+    if level not in ("lower", "upper", "all"):
+        level = "all"
+    return {"courses": fetch_hss_courses(level), "level": level}
+
 
 @app.post("/upload-audit")
 async def upload_audit(req: AuditRequest):
