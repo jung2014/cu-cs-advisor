@@ -157,13 +157,15 @@
   .sched-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden}
   .sched-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
   .sched-label{font-size:12px;font-weight:700;color:var(--text)}
-  .sched-cr{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .sched-cr{font-size:10px;color:var(--muted);font-family:var(--mono);padding:1px 6px;border:1px solid var(--border);border-radius:10px}
+  .pdf-btn{padding:5px 12px;border:1px solid var(--blue,#0ea5e9);border-radius:6px;font-size:11px;font-weight:600;color:var(--blue,#0ea5e9);background:none;cursor:pointer;transition:background .15s,color .15s}
+  .pdf-btn:hover{background:var(--blue,#0ea5e9);color:#fff}
 
   .calendar{width:100%;border-collapse:collapse;font-size:9px}
   .calendar th{background:var(--bg);color:var(--muted);padding:3px 2px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:8px}
   .cal-time{background:var(--bg);color:var(--muted);text-align:right;padding:0 3px;font-size:8px;border:1px solid var(--border);white-space:nowrap;width:28px;vertical-align:top;font-family:var(--mono)}
   .cal-cell{border:1px solid var(--border);height:16px;position:relative;vertical-align:top}
-  .cal-evt{position:absolute;left:1px;right:1px;border-radius:2px;padding:1px 2px;font-size:8px;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.2}
+  .cal-evt{position:absolute;border-radius:2px;padding:1px 2px;font-size:8px;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.2;box-sizing:border-box}
 
   .sched-list{padding:8px 10px}
   .sched-row{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:5px;cursor:pointer;transition:background .1s}
@@ -970,9 +972,11 @@ function _renderScheduleCard(events, courses, conflicts, failed, out) {
   const cr = courses.reduce((a,c) => a+(c.credits||0), 0);
   let html = `<div style="margin-top:16px"><div class="sched-card">
     <div class="sched-head">
-      <span class="sched-label">Your Schedule</span>
-      <span class="sched-cr">${cr} credits</span>
-      <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" style="margin-left:auto;padding:4px 10px;border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--muted);background:none;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇ PDF</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sched-label">Your Schedule</span>
+        <span class="sched-cr">${cr} credits</span>
+      </div>
+      <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" title="Saves a PDF image of this schedule card">⬇ Download PDF</button>
     </div>
     ${conflicts.length ? `<div style="padding:7px 12px;background:var(--amber-bg);border-bottom:1px solid var(--amber-bdr);font-size:11px;color:var(--amber)">⚠ Time conflict: ${conflicts.join(", ")}</div>` : ""}
     ${buildCalendar(events)}
@@ -1053,12 +1057,16 @@ function drawSchedules(schedules, out) {
   let html = `<div class="schedules-wrap">`;
   schedules.forEach((sched, i) => {
     const cr = sched.courses.reduce((a,c) => a + (c.credits||0), 0);
+    const conflicts = _findConflicts(sched.events || []);
     html += `<div class="sched-card">
       <div class="sched-head">
-        <span class="sched-label">Schedule ${i+1} — ${labels[i]}</span>
-        <span class="sched-cr">${cr} credits</span>
-        <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" style="margin-left:auto;padding:4px 10px;border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--muted);background:none;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇ PDF</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sched-label">Schedule ${i+1} — ${labels[i]}</span>
+          <span class="sched-cr">${cr} credits</span>
+        </div>
+        <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" title="Saves a PDF image of this schedule card">⬇ Download PDF</button>
       </div>
+      ${conflicts.length ? `<div style="padding:7px 12px;background:var(--amber-bg);border-bottom:1px solid var(--amber-bdr);font-size:11px;color:var(--amber)">⚠ Time conflict: ${conflicts.join(", ")}</div>` : ""}
       ${buildCalendar(sched.events)}
       <div class="sched-list">`;
     sched.courses.forEach((c, ci) => {
@@ -1090,23 +1098,36 @@ function buildCalendar(events) {
   const days = ["M","T","W","R","F"];
   const labels = {M:"Mon",T:"Tue",W:"Wed",R:"Thu",F:"Fri"};
   const rows = (END - START) / SLOT;
+
+  const slotMap = {};
+  (events||[]).forEach(ev => {
+    if (ev.start_min >= START && ev.start_min < END) {
+      const key = `${ev.day}-${Math.floor((ev.start_min - START) / SLOT)}`;
+      (slotMap[key] = slotMap[key] || []).push(ev);
+    }
+  });
+
   let html = `<table class="calendar" style="table-layout:fixed;width:100%">
     <tr><th style="width:28px"></th>${days.map(d=>`<th>${labels[d]}</th>`).join("")}</tr>`;
   for (let r = 0; r < rows; r++) {
     const abs = START + r * SLOT;
-    const h = Math.floor(abs/60), m = abs % 60;
-    const label = m === 0 ? `${h>12?h-12:h}${h>=12?"p":"a"}` : "";
+    const hh = Math.floor(abs/60), mm = abs % 60;
+    const label = mm === 0 ? `${hh>12?hh-12:hh}${hh>=12?"p":"a"}` : "";
     html += `<tr><td class="cal-time">${label}</td>`;
     days.forEach(day => {
       html += `<td class="cal-cell">`;
-      (events||[]).filter(ev => ev.day === day).forEach(ev => {
-        if (ev.start_min >= abs && ev.start_min < abs + SLOT) {
-          const h = Math.ceil((ev.end_min - ev.start_min) / SLOT) * 16;
-          html += `<div class="cal-evt" onclick="openCourse('${ev.course_id}')"
-            style="height:${h}px;background:${ev.color}22;border-left:2px solid ${ev.color};color:${ev.color}">
-            ${ev.course_id.split(" ")[1]||""}
-          </div>`;
-        }
+      const evs = slotMap[`${day}-${r}`] || [];
+      const n = evs.length;
+      evs.forEach((ev, idx) => {
+        const evH = Math.ceil((ev.end_min - ev.start_min) / SLOT) * 16;
+        const pct = 100 / n;
+        const left = `${idx * pct}%`;
+        const width = `calc(${pct}% - ${n > 1 ? 1 : 2}px)`;
+        html += `<div class="cal-evt" onclick="openCourse('${ev.course_id}')"
+          style="height:${evH}px;left:${left};width:${width};background:${ev.color}33;border-left:2px solid ${ev.color};color:${ev.color}${n>1?`;outline:1px solid ${ev.color}44`:''}"
+          title="${ev.course_id} — ${ev.title||''}">
+          ${ev.course_id.split(" ")[1]||""}
+        </div>`;
       });
       html += `</td>`;
     });

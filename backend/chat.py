@@ -948,7 +948,19 @@ async def course_detail_endpoint(req: CourseDetailRequest):
                 course = c
                 break
     if not course:
-        raise HTTPException(404, f"Course not found: {req.course_id}")
+        sched_sections = get_sections_for_course(query, DATA)
+        if sched_sections:
+            first = sched_sections[0]
+            course = {
+                "code": first.get("course_id", query),
+                "title": first.get("title", ""),
+                "credits": first.get("credits"),
+                "description": first.get("description", ""),
+                "prereqs_text": first.get("prereqs", ""),
+                "prereqs_structured": {},
+            }
+        else:
+            raise HTTPException(404, f"Course not found: {req.course_id}")
 
     code = course.get("code", req.course_id)
     prereq_struct = course.get("prereqs_structured", {})
