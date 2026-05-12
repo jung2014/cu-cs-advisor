@@ -492,11 +492,14 @@ function drawRequirements(data, c) {
     const needMeasure = useCredits ? sec.required_credits : (isPool ? (sec.required_count ?? total) : total);
     const pctSec = openEnded ? 0 : Math.min(100, Math.round(doneMeasure / Math.max(needMeasure, 1) * 100));
     const allDone = !openEnded && doneMeasure >= needMeasure;
-    const doneLabel = openEnded
-      ? `${sec.completed_count ?? 0} taken`
-      : useCredits
-        ? `${doneMeasure}/${needMeasure} credits`
-        : (isPool ? `${doneMeasure} of ${sec.required_count ?? '?'} chosen` : `${done}/${total}`);
+    const remaining = Math.max(0, needMeasure - doneMeasure);
+    const doneLabel = allDone
+      ? `Complete`
+      : openEnded
+        ? `${sec.completed_count ?? 0} taken`
+        : useCredits
+          ? `${remaining} credits left`
+          : (isPool ? `${remaining} left` : `${total - done} left`);
 
     const showFilter = isPool && !isCompact && total > 4;
     html += `<div class="section-card">
