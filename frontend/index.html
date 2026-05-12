@@ -152,7 +152,8 @@
   .build-btn:hover{opacity:.85}
   .build-btn:disabled{opacity:.4;cursor:not-allowed}
 
-  .schedules-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @keyframes schedSlide{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+  .schedules-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;animation:schedSlide .3s ease}
   @media(max-width:1100px){.schedules-wrap{grid-template-columns:1fr}}
   .sched-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden}
   .sched-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
@@ -734,6 +735,13 @@ async function renderSchedule() {
   });
 
   c.innerHTML = `
+    <div id="schedules-out" style="margin-bottom:0"></div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <button class="build-btn" id="build-btn" onclick="runSchedule()" disabled>⚡ Build Schedule</button>
+      <span style="font-size:12px;color:var(--muted)">Auto and pinned sections can be mixed freely</span>
+    </div>
+
     <div class="receipt-bar" id="receipt-bar">
       <div class="receipt-chips" id="receipt-chips">
         <span style="font-size:12px;color:var(--muted)">Click a course to add it — auto or pin a specific time</span>
@@ -750,13 +758,6 @@ async function renderSchedule() {
     <div class="picker-section" style="padding:0 16px">
       ${sections.length ? poolsHtml : '<p style="color:var(--muted);font-size:13px;padding:16px 0">No requirement data found.</p>'}
     </div>
-
-    <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
-      <button class="build-btn" id="build-btn" onclick="runSchedule()" disabled>⚡ Build Schedule</button>
-      <span style="font-size:12px;color:var(--muted)">Auto and pinned sections can be mixed freely</span>
-    </div>
-
-    <div id="schedules-out"></div>
 
     <div id="sect-picker-bg" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.35)" onclick="closeSectionPicker()">
       <div onclick="event.stopPropagation()" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--white);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.15);width:min(660px,96vw);max-height:80vh;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .18s ease">
@@ -967,8 +968,9 @@ async function runSchedule() {
   const hasManual = manualPicks.size > 0;
   if (!hasAuto && !hasManual) return;
 
-  if (!hasAuto) { _drawManualSchedule(out); return; }
+  if (!hasAuto) { out.style.marginBottom = "14px"; _drawManualSchedule(out); return; }
 
+  out.style.marginBottom = "14px";
   out.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Building schedule...</div>`;
   try {
     const res = await fetch(`${API}/build-schedule`, {
@@ -1018,7 +1020,7 @@ function _drawMixedSchedule(autoSched, out) {
 
 function _renderScheduleCard(events, courses, conflicts, failed, out) {
   const cr = courses.reduce((a,c) => a+(c.credits||0), 0);
-  let html = `<div style="margin-top:16px"><div class="sched-card">
+  let html = `<div style="animation:schedSlide .3s ease"><div class="sched-card">
     <div class="sched-head">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="sched-label">Your Schedule</span>
