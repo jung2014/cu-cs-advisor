@@ -499,7 +499,7 @@ function drawRequirements(data, c) {
         ? `${sec.completed_count ?? 0} taken`
         : useCredits
           ? `${remaining} credits left`
-          : (isPool ? `${remaining} left` : `${total - done} left`);
+          : (isPool ? `${remaining} classes left` : `${total - done} classes left`);
 
     const showFilter = isPool && !isCompact && total > 4;
     html += `<div class="section-card">
