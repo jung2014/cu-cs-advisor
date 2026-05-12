@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CU CS Advisor</title>
+<style>
+  :root {
+    --bg:       #f8fafc;
+    --white:    #ffffff;
+    --border:   #e2e8f0;
+    --border2:  #cbd5e1;
+    --text:     #0f172a;
+    --muted:    #64748b;
+    --muted2:   #94a3b8;
+    --gold:     #92680a;
+    --gold-bg:  #fef9ee;
+    --gold-bdr: #f0d070;
+    --blue:     #1d4ed8;
+    --blue-bg:  #eff6ff;
+    --blue-bdr: #bfdbfe;
+    --green:    #15803d;
+    --green-bg: #f0fdf4;
+    --green-bdr:#bbf7d0;
+    --red:      #b91c1c;
+    --red-bg:   #fef2f2;
+    --red-bdr:  #fecaca;
+    --amber:    #92400e;
+    --amber-bg: #fffbeb;
+    --amber-bdr:#fde68a;
+    --purple:   #5b21b6;
+    --purple-bg:#f5f3ff;
+    --purple-bdr:#ddd6fe;
+    --radius:   8px;
+    --mono:     "JetBrains Mono","Fira Code","SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+  /* ── Upload screen ── */
+  .upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;gap:32px}
+  .brand{text-align:center}
+  .brand-logo{font-size:40px;margin-bottom:8px}
+  .brand h1{font-size:24px;font-weight:800;color:var(--text)}
+  .brand p{color:var(--muted);font-size:14px;margin-top:4px}
+
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:700px}
+  .upload-card{background:var(--white);border:2px dashed var(--border2);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px}
+  .upload-card h3{font-size:13px;font-weight:700;color:var(--text)}
+  .upload-card p{font-size:12px;color:var(--muted);line-height:1.5}
+  .upload-drop{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:12px}
+  .upload-drop:hover{border-color:var(--gold);color:var(--gold)}
+  .upload-drop.done{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+  #transcript-file{display:none}
+  .audit-textarea{width:100%;min-height:120px;resize:vertical;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:11px;font-family:var(--mono);color:var(--text);outline:none;transition:border-color .2s;line-height:1.5}
+  .audit-textarea:focus{border-color:var(--blue)}
+  .audit-textarea::placeholder{color:var(--muted2)}
+
+  .start-btn{background:var(--gold);color:#fff;border:none;padding:12px 40px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+  .start-btn:hover{opacity:.85}
+  .start-btn:disabled{opacity:.4;cursor:not-allowed}
+  .upload-hint{font-size:11px;color:var(--muted);text-align:center}
+
+  /* ── Dashboard ── */
+  .dashboard{display:none;flex-direction:column;min-height:100vh}
+  .dashboard.show{display:flex}
+
+  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;flex-shrink:0}
+  .topbar-brand{font-weight:800;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px}
+  .topbar-brand span{font-size:18px}
+  .divider{width:1px;height:24px;background:var(--border)}
+  .student-pill{display:flex;align-items:center;gap:10px}
+  .student-name{font-weight:700;font-size:13px;color:var(--text)}
+  .student-stats{display:flex;gap:6px}
+  .stat-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .source-chip{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+  .source-chip.audit{background:var(--gold-bg);border:1px solid var(--gold-bdr);color:var(--gold)}
+  .source-chip.transcript{background:var(--blue-bg);border:1px solid var(--blue-bdr);color:var(--blue)}
+  .source-chip.both{background:var(--green-bg);border:1px solid var(--green-bdr);color:var(--green)}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .reset-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s}
+  .reset-btn:hover{border-color:var(--border2);color:var(--text)}
+
+  /* Horizontal tool tabs */
+  .tool-tabs{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;flex-shrink:0}
+  .tab-btn{padding:12px 20px;border:none;background:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .tab-btn:hover{color:var(--text)}
+  .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+  .main-content{flex:1;overflow-y:auto;padding:24px}
+  .main-content::-webkit-scrollbar{width:6px}
+  .main-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+  /* ── Cards & sections ── */
+  .section-card{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+  .section-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg)}
+  .section-title{font-size:13px;font-weight:700;color:var(--text)}
+  .badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+  .badge.neutral{background:var(--bg);border:1px solid var(--border2);color:var(--muted)}
+  .badge.gold{background:var(--gold-bg);border:1px solid var(--gold-bdr);color:var(--gold)}
+  .badge.green{background:var(--green-bg);border:1px solid var(--green-bdr);color:var(--green)}
+  .badge.red{background:var(--red-bg);border:1px solid var(--red-bdr);color:var(--red)}
+  .badge.blue{background:var(--blue-bg);border:1px solid var(--blue-bdr);color:var(--blue)}
+
+  .progress-wrap{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .prog-bar{width:80px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:3px;background:var(--gold);transition:width .4s}
+  .prog-label{font-size:11px;color:var(--muted);white-space:nowrap}
+
+  /* Course rows */
+  .course-list{padding:4px 8px}
+  .course-row{display:flex;align-items:flex-start;gap:10px;padding:8px 8px;border-radius:6px;cursor:pointer;transition:background .12s}
+  .course-row:hover{background:var(--bg)}
+  .status-icon{width:20px;flex-shrink:0;margin-top:1px;font-size:13px;text-align:center}
+  .course-main{flex:1;min-width:0}
+  .course-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .course-code{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .course-name{font-size:13px;color:var(--text)}
+  .cr-chip{font-size:10px;font-family:var(--mono);background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:3px;color:var(--muted)}
+  .course-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .course-lab{display:inline-flex;align-items:center;gap:5px;margin-top:3px;background:var(--purple-bg);border:1px solid var(--purple-bdr);border-radius:4px;padding:2px 8px}
+  .lab-type{font-size:9px;font-weight:700;color:var(--purple)}
+  .lab-code{font-size:11px;font-family:var(--mono);color:var(--purple);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+  .pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap}
+  .pill.ready{background:var(--green-bg);border:1px solid var(--green-bdr);color:var(--green)}
+  .pill.locked{background:var(--red-bg);border:1px solid var(--red-bdr);color:var(--red)}
+  .pill.inprog{background:var(--blue-bg);border:1px solid var(--blue-bdr);color:var(--blue)}
+  .pill.waive{background:var(--purple-bg);border:1px solid var(--purple-bdr);color:var(--purple)}
+  .pill.noffer{background:var(--bg);border:1px solid var(--border2);color:var(--muted)}
+
+  /* Progress summary row */
+  .summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+  .summary-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+  .summary-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .summary-val{font-size:22px;font-weight:800;color:var(--text);font-family:var(--mono);line-height:1}
+  .summary-sub{font-size:11px;color:var(--muted);margin-top:3px}
+  .summary-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+  .summary-fill{height:100%;border-radius:2px;background:var(--gold)}
+
+  /* ── Schedule builder ── */
+  .picker-section{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+  .picker-section h3{font-size:13px;font-weight:700;margin-bottom:4px}
+  .picker-section p{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .picker-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .pick-btn{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--bg);border:1px solid var(--border2);border-radius:20px;cursor:pointer;transition:all .15s;font-size:12px;color:var(--muted)}
+  .pick-btn:hover{border-color:var(--border2);background:var(--border);color:var(--text)}
+  .pick-btn.selected{background:var(--blue-bg);border-color:var(--blue-bdr);color:var(--blue);font-weight:600}
+  .pick-code{font-family:var(--mono);font-size:11px;font-weight:700}
+
+  .build-btn{background:var(--gold);color:#fff;border:none;padding:9px 24px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s}
+  .build-btn:hover{opacity:.85}
+  .build-btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .schedules-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:1100px){.schedules-wrap{grid-template-columns:1fr}}
+  .sched-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .sched-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+  .sched-label{font-size:12px;font-weight:700;color:var(--text)}
+  .sched-cr{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+  .calendar{width:100%;border-collapse:collapse;font-size:9px}
+  .calendar th{background:var(--bg);color:var(--muted);padding:3px 2px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:8px}
+  .cal-time{background:var(--bg);color:var(--muted);text-align:right;padding:0 3px;font-size:8px;border:1px solid var(--border);white-space:nowrap;width:28px;vertical-align:top;font-family:var(--mono)}
+  .cal-cell{border:1px solid var(--border);height:16px;position:relative;vertical-align:top}
+  .cal-evt{position:absolute;left:1px;right:1px;border-radius:2px;padding:1px 2px;font-size:8px;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.2}
+
+  .sched-list{padding:8px 10px}
+  .sched-row{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:5px;cursor:pointer;transition:background .1s}
+  .sched-row:hover{background:var(--bg)}
+  .sched-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .sched-code{font-family:var(--mono);font-size:11px;font-weight:700}
+  .sched-info{font-size:11px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sched-score{margin-left:auto;font-size:10px;color:var(--amber);font-family:var(--mono);white-space:nowrap}
+
+  /* ── Search ── */
+  .search-wrap{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+  .search-row{display:flex;gap:8px}
+  .search-input{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;font-family:var(--mono)}
+  .search-input:focus{border-color:var(--blue)}
+  .search-input::placeholder{color:var(--muted2);font-family:inherit}
+  .search-btn{background:var(--blue);color:#fff;border:none;padding:9px 18px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s}
+  .search-btn:hover{opacity:.85}
+
+  /* ── Modal ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--white);border:1px solid var(--border);border-radius:12px;width:100%;max-width:760px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:slideUp .2s ease}
+  @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .modal-top{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:flex-start;gap:12px}
+  .modal-code{font-family:var(--mono);font-size:20px;font-weight:900;color:var(--gold)}
+  .modal-title{font-size:14px;color:var(--muted);margin-top:3px}
+  .modal-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .modal-close{margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 8px;flex-shrink:0;transition:all .15s}
+  .modal-close:hover{border-color:var(--border2);color:var(--text)}
+  .modal-body{padding:18px 20px;max-height:70vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+  .m-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px}
+  .m-desc{font-size:13px;color:var(--muted);line-height:1.7}
+
+  .prereq-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}
+  .prereq-mark{font-size:14px}
+
+  .section-table{width:100%;border-collapse:collapse;font-size:12px}
+  .section-table th{font-size:10px;color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;background:var(--bg)}
+  .section-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  .section-table tr:last-child td{border-bottom:none}
+  .section-table tr:hover td{background:var(--bg)}
+  .score-row{display:flex;align-items:center;gap:6px}
+  .score-num{font-family:var(--mono);font-size:11px;font-weight:700;min-width:32px}
+  .score-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+  .score-fill{height:100%;border-radius:3px}
+  .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+  .metric-chip{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center}
+  .metric-name{font-size:8px;color:var(--muted);text-transform:uppercase}
+  .metric-val{font-size:11px;font-weight:700;font-family:var(--mono)}
+
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-msg{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;padding:24px}
+  .error-msg{color:var(--red);font-size:12px;font-family:var(--mono);padding:12px}
+
+  /* ── Schedule builder v2 ── */
+  .sched-mode-btn{padding:7px 18px;border:1px solid var(--border2);border-radius:20px;background:var(--bg);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .sched-mode-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+  .sched-mode-btn:hover:not(.active){background:var(--border);color:var(--text)}
+  .receipt-bar{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .receipt-chips{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .receipt-chip{display:inline-flex;align-items:center;gap:5px;background:var(--blue-bg);border:1px solid var(--blue-bdr);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--blue)}
+  .pool-accordion{border-bottom:1px solid var(--border)}
+  .pool-accordion:last-child{border-bottom:none}
+  .pool-header{display:flex;align-items:center;gap:8px;padding:11px 0;cursor:pointer;user-select:none;transition:opacity .15s}
+  .pool-header:hover{opacity:.7}
+  .pool-chevron{font-size:9px;color:var(--muted2);margin-left:auto;transition:transform .2s;display:inline-block}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Upload Screen ── -->
+<div class="upload-screen" id="upload-screen">
+  <div class="brand">
+    <div class="brand-logo">🦬</div>
+    <h1>CU Boulder CS Advisor</h1>
+    <p>Upload your transcript and/or paste your degree audit to get started</p>
+  </div>
+
+  <div class="upload-grid">
+    <div class="upload-card">
+      <h3>📄 Transcript PDF</h3>
+      <p>Download your unofficial transcript from the CU student portal and upload it here.</p>
+      <div class="upload-drop" id="pdf-drop" onclick="document.getElementById('transcript-file').click()">
+        Click to upload PDF
+      </div>
+      <input type="file" id="transcript-file" accept=".pdf" onchange="handlePDF(event)"/>
+    </div>
+
+    <div class="upload-card">
+      <h3>📋 Degree Audit Text</h3>
+      <p>Go to CU's degree audit, select all the text on the page, copy it, and paste it below. Recommended — gives more accurate requirement matching.</p>
+      <textarea class="audit-textarea" id="audit-text" placeholder="Paste your degree audit text here..."></textarea>
+    </div>
+  </div>
+
+  <button class="start-btn" id="start-btn" onclick="handleStart()" disabled>Get Started →</button>
+  <div class="upload-hint">You can upload one or both — using both gives the most accurate results</div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div class="dashboard" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-brand"><span>🦬</span> CU CS Advisor</div>
+    <div class="divider"></div>
+    <div class="student-pill">
+      <span class="student-name" id="d-name">—</span>
+      <div class="student-stats">
+        <span class="stat-chip" id="d-gpa">—</span>
+        <span class="stat-chip" id="d-credits">—</span>
+        <span class="source-chip" id="d-source">—</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="reset-btn" onclick="resetApp()">↩ Start over</button>
+    </div>
+  </div>
+
+  <div class="tool-tabs">
+    <button class="tab-btn active" id="tab-req" onclick="showTab('requirements')">📋 Degree Requirements</button>
+    <button class="tab-btn" id="tab-sched" onclick="showTab('schedule')">🗓 Build Schedule</button>
+    <button class="tab-btn" id="tab-search" onclick="showTab('search')">🔍 Course Lookup</button>
+  </div>
+
+  <div class="main-content" id="main-content"></div>
+</div>
+
+<!-- ── Course Detail Modal ── -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-top">
+      <div>
+        <div class="modal-code" id="m-code"></div>
+        <div class="modal-title" id="m-title"></div>
+        <div class="modal-tags" id="m-tags"></div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8001";
+let student = null;
+let requirementsData = null;
+const selectedCourses = new Set();
+
+// ── Upload handling ────────────────────────────────────────────────────────────
+
+let pdfProfile = null, auditProfile = null;
+
+async function handlePDF(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const drop = document.getElementById("pdf-drop");
+  drop.textContent = "⏳ Parsing...";
+  drop.className = "upload-drop";
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${API}/upload-transcript`, {method:"POST", body:fd});
+    if (!res.ok) throw new Error(await res.text());
+    pdfProfile = (await res.json()).student_profile;
+    drop.textContent = "✓ " + file.name;
+    drop.className = "upload-drop done";
+    updateStartBtn();
+  } catch(err) {
+    drop.textContent = "❌ Failed — " + err.message.slice(0, 60);
+    drop.className = "upload-drop";
+  }
+}
+
+function updateStartBtn() {
+  const auditText = document.getElementById("audit-text").value.trim();
+  document.getElementById("start-btn").disabled = !pdfProfile && auditText.length < 100;
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("audit-text").addEventListener("input", updateStartBtn);
+});
+
+async function handleStart() {
+  const auditText = document.getElementById("audit-text").value.trim();
+  document.getElementById("start-btn").disabled = true;
+  document.getElementById("start-btn").textContent = "⏳ Loading...";
+
+  // Parse audit if provided
+  if (auditText.length >= 100) {
+    try {
+      const res = await fetch(`${API}/upload-audit`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({text: auditText}),
+      });
+      if (res.ok) auditProfile = (await res.json()).student_profile;
+    } catch(_) {}
+  }
+
+  // Merge: audit is primary source of truth, PDF fills gaps
+  if (auditProfile && pdfProfile) {
+    student = {...pdfProfile, ...auditProfile};
+    student.source = "both";
+  } else if (auditProfile) {
+    student = {...auditProfile, source: "audit"};
+  } else {
+    student = {...pdfProfile, source: "transcript"};
+  }
+
+  launchDashboard();
+}
+
+function launchDashboard() {
+  document.getElementById("upload-screen").style.display = "none";
+  document.getElementById("dashboard").className = "dashboard show";
+
+  document.getElementById("d-name").textContent = student.name || "Unknown";
+  document.getElementById("d-gpa").textContent = "GPA " + (student.cumulative_gpa?.toFixed(2) ?? "—");
+  document.getElementById("d-credits").textContent = (student.total_credits_completed ?? "—") + " credits";
+
+  const src = student.source;
+  const chip = document.getElementById("d-source");
+  chip.textContent = src === "both" ? "audit + transcript" : src === "audit" ? "degree audit" : "transcript";
+  chip.className = "source-chip " + (src === "both" ? "both" : src === "audit" ? "audit" : "transcript");
+
+  showTab("requirements");
+}
+
+function resetApp() {
+  student = null; pdfProfile = null; auditProfile = null; requirementsData = null;
+  selectedCourses.clear();
+  document.getElementById("upload-screen").style.display = "";
+  document.getElementById("dashboard").className = "dashboard";
+  document.getElementById("pdf-drop").textContent = "Click to upload PDF";
+  document.getElementById("pdf-drop").className = "upload-drop";
+  document.getElementById("audit-text").value = "";
+  document.getElementById("start-btn").disabled = true;
+  document.getElementById("start-btn").textContent = "Get Started →";
+}
+
+// ── Tab routing ────────────────────────────────────────────────────────────────
+
+function showTab(name) {
+  ["req","sched","search"].forEach((t,i) => {
+    const id = ["requirements","schedule","search"][i];
+    document.getElementById("tab-"+t).className = "tab-btn" + (name === id ? " active" : "");
+  });
+  const c = document.getElementById("main-content");
+  c.innerHTML = "";
+  if (name === "requirements") renderRequirements();
+  else if (name === "schedule") renderSchedule();
+  else renderSearch();
+}
+
+// ── Requirements ───────────────────────────────────────────────────────────────
+
+async function renderRequirements() {
+  const c = document.getElementById("main-content");
+  c.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Loading requirements...</div>`;
+  try {
+    const res = await fetch(`${API}/requirements`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({student_profile: student}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    requirementsData = await res.json();
+    drawRequirements(requirementsData, c);
+  } catch(err) {
+    c.innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+  }
+}
+
+function drawRequirements(data, c) {
+  const earned = data.credits_earned ?? 0;
+  const needed = data.credits_needed ?? 128;
+  const pct = Math.min(100, Math.round(earned / needed * 100));
+
+  // Section summary strip
+  const sectionChips = data.sections.map(sec => {
+    const isPool = sec.type === "pool";
+    const done = isPool
+      ? (sec.completed_count ?? 0)
+      : sec.courses.filter(c => c.status === "completed" || c.status === "in_progress").length;
+    const need = isPool ? (sec.required_count ?? sec.courses.length) : sec.courses.length;
+    const allDone = done >= need;
+    const chipPct = Math.min(100, Math.round(done / Math.max(need, 1) * 100));
+    const shortName = sec.name
+      .replace("Computer Science Core (choose 5 courses)", "CS Core")
+      .replace("Senior Capstone (choose one 2-course pair)", "Capstone")
+      .replace("Physics & Natural Science Sequence (choose one complete sequence)", "Science")
+      .replace("College Writing Requirement (choose 1)", "Writing")
+      .replace("Logic & Ethics", "Ethics");
+    return `<div style="background:var(--white);border:1px solid ${allDone?'var(--green-bdr)':'var(--border)'};border-radius:8px;padding:10px 14px;min-width:110px;flex:1">
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${shortName}</div>
+      <div style="font-size:15px;font-weight:800;font-family:var(--mono);color:${allDone?'var(--green)':'var(--text)'}">${done}<span style="font-size:11px;font-weight:500;color:var(--muted)">/${need}</span></div>
+      <div style="height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden">
+        <div style="height:100%;width:${chipPct}%;background:${allDone?'var(--green)':'var(--gold)'};border-radius:2px"></div>
+      </div>
+    </div>`;
+  });
+
+  let html = `
+  <div style="margin-bottom:16px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:700;color:var(--text)">${data.major || "—"}</span>
+      <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">${earned} / ${needed} credits (${pct}%)</span>
+    </div>
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:14px">
+      <div style="height:100%;width:${pct}%;background:var(--gold);border-radius:3px;transition:width .5s ease"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${sectionChips.join("")}</div>
+  </div>`;
+
+  data.sections.forEach(sec => {
+    const total = sec.courses.length;
+    const done = sec.courses.filter(c => c.status === "completed" || c.status === "in_progress").length;
+    const isPool = sec.type === "pool";
+    const isCompact = sec.compact;
+
+    // For credit-based pools, track by credits; for count-based, track by count
+    const useCredits = isPool && sec.required_credits && !sec.required_count;
+    const openEnded = isPool && !sec.required_credits && !sec.required_count; // e.g. "bring total to 58 cr"
+    const doneMeasure = useCredits ? (sec.completed_credits ?? 0) : (isPool ? (sec.completed_count ?? 0) : done);
+    const needMeasure = useCredits ? sec.required_credits : (isPool ? (sec.required_count ?? total) : total);
+    const pctSec = openEnded ? 0 : Math.min(100, Math.round(doneMeasure / Math.max(needMeasure, 1) * 100));
+    const allDone = !openEnded && doneMeasure >= needMeasure;
+    const doneLabel = openEnded
+      ? `${sec.completed_count ?? 0} taken`
+      : useCredits
+        ? `${doneMeasure}/${needMeasure} credits`
+        : (isPool ? `${doneMeasure} of ${sec.required_count ?? '?'} chosen` : `${done}/${total}`);
+
+    const showFilter = isPool && !isCompact && total > 4;
+    html += `<div class="section-card">
+      <div class="section-head">
+        <span class="section-title">${sec.name}</span>
+        <span class="badge ${allDone?'green':doneMeasure>0?'gold':'neutral'}">${doneLabel}</span>
+        ${!openEnded ? `<div class="progress-wrap" style="margin-left:${showFilter?'8px':'auto'}">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pctSec}%"></div></div>
+          <span class="prog-label">${pctSec}%</span>
+        </div>` : ''}
+        ${showFilter ? `<input type="text" placeholder="Search by name, code, or professor…"
+          oninput="filterPool(this)" onclick="event.stopPropagation()"
+          style="margin-left:auto;padding:3px 10px;font-size:11px;border:1px solid var(--border2);border-radius:6px;width:220px;background:var(--white);color:var(--text);outline:none;flex-shrink:0"/>` : ''}
+      </div>
+      ${sec.note && !isCompact ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--muted)">${sec.note}</div>` : ''}
+      <div class="course-list">`;
+
+    // Compact pools (H&SS): only show taken courses + summary note
+    if (isCompact) {
+      if (sec.courses.length === 0) {
+        const crLeft = Math.max(0, (sec.required_credits ?? 0) - (sec.completed_credits ?? 0));
+        html += `<div style="padding:12px 16px;font-size:12px;color:var(--muted)">
+          No qualifying courses completed yet. ${crLeft} credits still needed from ${sec.total_pool_size} approved courses.
+          ${sec.note ? `<br><span style="font-size:10px">${sec.note}</span>` : ""}
+        </div>`;
+      } else {
+        const crLeft = Math.max(0, (sec.required_credits ?? 0) - (sec.completed_credits ?? 0));
+        const summary = crLeft > 0
+          ? `${crLeft} more credits needed from ${sec.total_pool_size} approved courses.`
+          : `Requirement met.`;
+        html += `<div style="padding:6px 16px 4px;font-size:11px;color:var(--muted)">${summary}</div>`;
+        sec.courses.forEach(course => {
+          html += `<div class="course-row" onclick="openCourse('${course.code}')">
+            <div class="status-icon" style="color:var(--green)">✓</div>
+            <div class="course-main">
+              <div class="course-top">
+                <span class="course-code">${course.code}</span>
+                <span class="course-name">${course.title || ""}</span>
+                <span class="cr-chip">${course.credits ?? "?"} credits</span>
+                <span class="pill ready">✓ done</span>
+              </div>
+            </div>
+          </div>`;
+        });
+      }
+      html += `</div></div>`;
+      return;
+    }
+
+    sec.courses.forEach(course => {
+      const isDone = course.status === "completed";
+      const isIP   = course.status === "in_progress";
+      const icon = isDone ? "✓" : isIP ? "⏳" : course.prereqs_met ? "○" : "🔒";
+      const iconColor = isDone ? "var(--green)" : isIP ? "var(--blue)" : course.prereqs_met ? "var(--muted2)" : "var(--red)";
+
+      const pills = [];
+      if (course.waiveable) pills.push(`<span class="pill waive" title="${course.waive_note||''}">may be waived</span>`);
+      else if (isDone) pills.push(`<span class="pill ready">✓ done${course.completed_with && course.completed_with !== course.code ? ' via '+course.completed_with : ''}</span>`);
+      else if (isIP) pills.push(`<span class="pill inprog">in progress</span>`);
+      else if (!course.prereqs_met) pills.push(`<span class="pill locked">prereqs missing</span>`);
+      else if (course.prereqs_met) pills.push(`<span class="pill ready">ready</span>`);
+      if (!isDone && !isIP && !course.offered) pills.push(`<span class="pill noffer">not offered F26</span>`);
+      if (!isDone && !isIP && course.lab) pills.push(`<span class="pill noffer" title="This course has associated lab or recitation sections">may require lab</span>`);
+
+      const alts = course.alternatives?.length
+        ? `<div class="course-sub">or: ${course.alternatives.join(", ")}</div>` : "";
+      const lab = course.lab
+        ? `<div class="course-lab">
+             <span class="lab-type">${course.lab.type}</span>
+             <span class="lab-code" onclick="event.stopPropagation();openCourse('${course.lab.code}')">${course.lab.code}</span>
+             ${course.lab.credits ? `<span style="font-size:10px;color:var(--purple)">${course.lab.credits} credits</span>` : ''}
+           </div>` : "";
+
+      const instrLine = (isPool && course.instructor)
+        ? `<div class="course-sub" style="color:var(--muted2)">${course.instructor}</div>` : "";
+      const seqLine = course.sequence
+        ? `<div class="course-sub" style="color:var(--blue);font-size:10px">⇄ ${course.sequence}</div>` : "";
+      const searchStr = `${course.code} ${course.title||""} ${course.instructor||""} ${course.sequence||""}`.toLowerCase();
+      html += `<div class="course-row" onclick="openCourse('${course.code}')" data-search="${searchStr}">
+        <div class="status-icon" style="color:${iconColor}">${icon}</div>
+        <div class="course-main">
+          <div class="course-top">
+            <span class="course-code">${course.code}</span>
+            <span class="course-name">${course.title || ""}</span>
+            <span class="cr-chip">${course.credits ?? "?"} credits</span>
+            ${pills.join("")}
+          </div>
+          ${instrLine}${seqLine}${alts}${lab}
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function filterPool(input) {
+  const q = input.value.toLowerCase().trim();
+  const list = input.closest(".section-card").querySelector(".course-list");
+  if (!list) return;
+  list.querySelectorAll(".course-row").forEach(row => {
+    row.style.display = (!q || (row.dataset.search || "").includes(q)) ? "" : "none";
+  });
+}
+
+// ── Schedule Builder ───────────────────────────────────────────────────────────
+
+let manualPicks = new Map();   // code → {section, title, credits, color}
+let _selectedCredits = 0;
+let _colorIdx = 0;
+
+function _shortPoolName(n) {
+  return n
+    .replace("Computer Science Core (choose 5 courses)", "CS Core Electives")
+    .replace("Senior Capstone (choose one 2-course pair)", "Senior Capstone")
+    .replace("Physics & Natural Science Sequence (choose one complete sequence)", "Science Sequence")
+    .replace("College Writing Requirement (choose 1)", "Writing")
+    .replace("CSCI Upper Division Electives", "CS Upper Division Electives")
+    .replace("Remaining Humanities & Social Sciences (9 credits)", "H&SS General")
+    .replace("Upper Division H&SS (6 credits, 3000–4000 level)", "Upper Division H&SS");
+}
+
+async function renderSchedule() {
+  const c = document.getElementById("main-content");
+  if (!requirementsData) {
+    c.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Loading requirements...</div>`;
+    const res = await fetch(`${API}/requirements`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({student_profile: student}),
+    });
+    requirementsData = await res.json();
+  }
+
+  const currentCodes = new Set((student.current_courses || []).map(x => x.code));
+  selectedCourses.clear(); manualPicks.clear(); _selectedCredits = 0; _colorIdx = 0;
+
+  // Show ALL pools — even empty ones so user knows they exist
+  const sections = [];
+  requirementsData.sections.forEach(sec => {
+    const available = sec.courses.filter(course =>
+      course.status !== "completed" && course.offered && !currentCodes.has(course.code)
+    );
+    const notOffered = sec.courses.filter(course =>
+      course.status !== "completed" && !course.offered && !currentCodes.has(course.code)
+    );
+    sections.push({name: sec.name, courses: available, noneOffered: available.length === 0 && notOffered.length > 0});
+  });
+
+  let poolsHtml = "";
+  sections.forEach((sec, i) => {
+    let body;
+    if (!sec.courses.length) {
+      const msg = sec.noneOffered
+        ? "No courses from this pool are in the Fall 2026 schedule data."
+        : "All courses in this pool are already completed or in progress.";
+      body = `<div style="padding:10px 0 14px;font-size:12px;color:var(--muted)">${msg}</div>`;
+    } else {
+      let chips = "";
+      sec.courses.forEach(course => {
+        const cr = course.credits ?? "?";
+        const safeTitle = (course.title||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+        const prereqBadge = course.prereqs_met === false
+          ? `<span style="font-size:9px;background:var(--red-bg);border:1px solid var(--red-bdr);color:var(--red);border-radius:3px;padding:1px 5px;flex-shrink:0;white-space:nowrap">⚠ prereqs</span>` : '';
+        const labBadge = course.lab
+          ? `<span style="font-size:9px;background:var(--blue-bg);border:1px solid var(--blue-bdr);color:var(--blue);border-radius:3px;padding:1px 5px;flex-shrink:0;white-space:nowrap">LEC</span><span style="font-size:9px;background:var(--purple-bg);border:1px solid var(--purple-bdr);color:var(--purple);border-radius:3px;padding:1px 5px;flex-shrink:0;white-space:nowrap">${course.lab.type||'REC'}</span>` : '';
+        chips += `<div class="pick-btn" id="pick-${course.code.replace(/ /g,'_')}"
+          onclick="handleCourseClick('${course.code}',${JSON.stringify(cr)},'${safeTitle}')"
+          data-credits="${cr}">
+          <span class="pick-code">${course.code}</span>
+          <span style="color:var(--muted);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${course.title||""}</span>
+          ${labBadge}${prereqBadge}
+          <span style="font-size:10px;font-family:var(--mono);color:var(--muted2);flex-shrink:0">${cr} credits</span>
+        </div>`;
+      });
+      body = `<div class="picker-grid" style="padding:2px 0 14px">${chips}</div>`;
+    }
+    poolsHtml += `<div class="pool-accordion">
+      <div class="pool-header" onclick="togglePool(${i})">
+        <span style="font-size:12px;font-weight:700;color:var(--text)">${_shortPoolName(sec.name)}</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:400">${sec.courses.length} available</span>
+        <span class="pool-chevron" id="chevron-${i}">▶</span>
+      </div>
+      <div class="pool-body" id="pool-body-${i}" style="display:none">${body}</div>
+    </div>`;
+  });
+
+  c.innerHTML = `
+    <div class="receipt-bar" id="receipt-bar">
+      <div class="receipt-chips" id="receipt-chips">
+        <span style="font-size:12px;color:var(--muted)">Click a course to add it — auto or pin a specific time</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:11px;color:var(--muted)">Budget:</span>
+        <input type="number" id="credit-budget" value="15" min="1" max="30"
+          style="width:46px;padding:3px 6px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:var(--mono);font-weight:700;text-align:center;background:var(--white);color:var(--text);outline:none"
+          oninput="renderReceipt()"/>
+        <span style="font-size:12px;font-family:var(--mono);font-weight:700" id="receipt-credits">0 / 15 credits</span>
+      </div>
+    </div>
+
+    <div class="picker-section" style="padding:0 16px">
+      ${sections.length ? poolsHtml : '<p style="color:var(--muted);font-size:13px;padding:16px 0">No requirement data found.</p>'}
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+      <button class="build-btn" id="build-btn" onclick="runSchedule()" disabled>⚡ Build Schedule</button>
+      <span style="font-size:12px;color:var(--muted)">Auto and pinned sections can be mixed freely</span>
+    </div>
+
+    <div id="schedules-out"></div>
+
+    <div id="sect-picker-bg" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.35)" onclick="closeSectionPicker()">
+      <div onclick="event.stopPropagation()" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--white);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.15);width:min(660px,96vw);max-height:80vh;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .18s ease">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--gold)" id="sp-code"></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px" id="sp-title"></div>
+          </div>
+          <button onclick="closeSectionPicker()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:14px;cursor:pointer;padding:3px 10px">✕</button>
+        </div>
+        <div style="overflow-y:auto" id="sp-body">
+          <div class="loading-msg"><span class="spinner"></span> Loading sections...</div>
+        </div>
+      </div>
+    </div>`;
+
+  if (sections.length > 0) togglePool(0);
+}
+
+function handleCourseClick(code, credits, title) {
+  openSectionPicker(code, title, credits);
+}
+
+function renderReceipt() {
+  const budget = parseInt(document.getElementById("credit-budget")?.value) || 15;
+  const chips = document.getElementById("receipt-chips");
+  const credEl = document.getElementById("receipt-credits");
+  const btn = document.getElementById("build-btn");
+  const total = selectedCourses.size + manualPicks.size;
+  if (!total) {
+    if (chips) chips.innerHTML = `<span style="font-size:12px;color:var(--muted)">Click a course to add it — auto or pin a specific time</span>`;
+    if (credEl) { credEl.textContent = `0 / ${budget} credits`; credEl.style.color = "var(--text)"; }
+    if (btn) btn.disabled = true;
+    return;
+  }
+  let html = "";
+  // Auto courses — blue chip
+  selectedCourses.forEach(code => {
+    const cr = parseFloat(document.getElementById("pick-"+code.replace(/ /g,'_'))?.dataset.credits)||0;
+    html += `<span class="receipt-chip">
+      <span style="font-family:var(--mono);font-size:11px;font-weight:700">${code}</span>
+      <span style="font-size:10px;opacity:.7">auto · ${cr} credits</span>
+      <span onclick="removeFromReceipt('${code}')" style="cursor:pointer;opacity:.6;font-size:14px;line-height:1;font-weight:700">×</span>
+    </span>`;
+  });
+  // Pinned courses — green chip
+  manualPicks.forEach((pick, code) => {
+    const time = (pick.section.meetings||[]).map(fmtMtg).join(", ");
+    html += `<span class="receipt-chip" style="background:var(--green-bg);border-color:var(--green-bdr);color:var(--green)">
+      <span style="font-family:var(--mono);font-size:11px;font-weight:700">${code}</span>
+      ${time ? `<span style="font-size:10px;opacity:.8">${time}</span>` : ""}
+      <span style="font-size:10px;opacity:.7">${pick.credits} credits</span>
+      <span onclick="removeFromReceipt('${code}')" style="cursor:pointer;opacity:.6;font-size:14px;line-height:1;font-weight:700">×</span>
+    </span>`;
+  });
+  if (chips) chips.innerHTML = html;
+  const over = _selectedCredits > budget;
+  if (credEl) {
+    credEl.textContent = `${_selectedCredits} / ${budget} credits`;
+    credEl.style.color = over ? "var(--red)" : _selectedCredits > 0 ? "var(--green)" : "var(--text)";
+  }
+  if (btn) btn.disabled = false;
+}
+
+function removeFromReceipt(code) {
+  const cr = parseFloat(document.getElementById("pick-"+code.replace(/ /g,'_'))?.dataset.credits)||0;
+  if (selectedCourses.has(code)) { selectedCourses.delete(code); _selectedCredits -= cr; }
+  if (manualPicks.has(code)) { _selectedCredits -= manualPicks.get(code).credits||0; manualPicks.delete(code); }
+  document.getElementById("pick-"+code.replace(/ /g,'_'))?.classList.remove("selected");
+  renderReceipt();
+}
+
+function togglePool(i) {
+  const body = document.getElementById(`pool-body-${i}`);
+  const chevron = document.getElementById(`chevron-${i}`);
+  if (!body) return;
+  const open = body.style.display !== "none";
+  body.style.display = open ? "none" : "block";
+  if (chevron) chevron.style.transform = open ? "" : "rotate(90deg)";
+}
+
+async function openSectionPicker(code, title, credits) {
+  const spBody = document.getElementById("sp-body");
+  document.getElementById("sp-code").textContent = code;
+  document.getElementById("sp-title").textContent = title;
+  spBody.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Loading sections...</div>`;
+  spBody.dataset.code = code;
+  spBody.dataset.credits = credits;
+  document.getElementById("sect-picker-bg").style.display = "block";
+  try {
+    const res = await fetch(`${API}/course-detail`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({course_id: code, student_profile: student}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    _renderSectionPicker(code, parseFloat(credits)||3, (await res.json()).sections||[]);
+  } catch(err) {
+    spBody.innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+  }
+}
+
+function _renderSectionPicker(code, credits, sections) {
+  const spBody = document.getElementById("sp-body");
+  const isAuto = selectedCourses.has(code);
+  const picked = manualPicks.get(code);
+  const hasLabs = sections.length > 0 && (sections[0].labs || []).length > 0;
+
+  let html = `<div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+    <button onclick="_setAuto()" style="width:100%;padding:9px 14px;background:${isAuto?'var(--blue)':'var(--bg)'};color:${isAuto?'#fff':'var(--text)'};border:1px solid ${isAuto?'var(--blue)':'var(--border2)'};border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s">
+      ⚡ Auto — pick the best available section for me
+    </button>
+    <p style="font-size:11px;color:var(--muted);margin:6px 0 0">We'll pick the highest-rated section that fits around your pinned classes.</p>
+  </div>`;
+
+  if (!sections.length) {
+    html += `<div style="padding:16px;color:var(--muted);font-size:12px">No sections in the Fall 2026 schedule — auto mode will skip this course.</div>`;
+    spBody.innerHTML = html;
+    spBody.dataset.sections = "[]";
+    return;
+  }
+
+  if (hasLabs) {
+    html += `<div style="padding:8px 16px;background:var(--amber-bg);border-bottom:1px solid var(--amber-bdr);font-size:11px;color:var(--amber)">
+      ⚠ May require a separate lab or recitation section — check the course listing to confirm.
+    </div>`;
+  }
+
+  html += `<div style="padding:8px 16px 4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600">Or pin a specific section</div>`;
+  html += `<table class="section-table"><thead><tr>
+    <th>§</th><th>Instructor</th><th>Time</th><th>Score</th><th>Seats</th><th></th>
+  </tr></thead><tbody>`;
+  sections.forEach((s, idx) => {
+    const score = s.justin_score ?? s.cs_avg_score;
+    const sc = score == null ? "var(--muted)" : score >= 70 ? "var(--green)" : score >= 45 ? "var(--amber)" : "var(--red)";
+    const mtg = (s.meetings||[]).map(fmtMtg).join(", ") || "TBA";
+    const isSel = picked?.section?.section === s.section;
+    const conflictCodes = _sectionConflictCodes(s);
+    const hasConflict = conflictCodes.length > 0;
+    const conflictWarn = hasConflict
+      ? `<div style="margin-top:2px;font-size:9px;background:var(--amber-bg);border:1px solid var(--amber-bdr);color:var(--amber);border-radius:3px;padding:1px 5px;display:inline-block">⚠ conflicts: ${conflictCodes.join(', ')}</div>` : '';
+    const rowBg = isSel ? 'var(--green-bg)' : hasConflict ? 'var(--amber-bg)' : '';
+    html += `<tr style="cursor:pointer${rowBg?';background:'+rowBg:''}" onclick="_selectSection(${idx})">
+      <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${s.section||""}</span></td>
+      <td style="font-size:12px">${s.instructor||""}</td>
+      <td><div style="font-family:var(--mono);font-size:10px;color:var(--muted)">${mtg}</div>${conflictWarn}</td>
+      <td><span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${sc}">${score!=null?score.toFixed(1):"—"}</span></td>
+      <td><span style="font-family:var(--mono);font-size:11px;color:${(s.seats_available||0)>0?'var(--green)':'var(--red)'}">${s.seats_available||"?"}/${s.seats_total||"?"}</span></td>
+      <td><span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${isSel?'var(--green)':'var(--bg)'};color:${isSel?'#fff':'var(--muted)'};border:1px solid ${isSel?'var(--green)':'var(--border2)'}">${isSel?'✓ Pinned':'Pin'}</span></td>
+    </tr>`;
+    // Show linked lab/rec sections as sub-rows
+    (s.labs||[]).forEach(lb => {
+      const lm = (lb.meetings||[]).map(fmtMtg).join(' / ') || 'TBA';
+      html += `<tr style="background:var(--purple-bg);opacity:.9">
+        <td style="padding-left:14px"><span style="font-size:9px;font-weight:700;background:var(--purple-bg);border:1px solid var(--purple-bdr);color:var(--purple);border-radius:3px;padding:1px 5px">${lb.type||'REC'}</span></td>
+        <td style="font-size:11px;color:var(--muted)">§${lb.section}</td>
+        <td style="font-family:var(--mono);font-size:10px;color:var(--purple)">${lm}</td>
+        <td></td>
+        <td><span style="font-family:var(--mono);font-size:10px;color:${lb.seats_available>0?'var(--green)':'var(--red)'}">${lb.seats_available}/${lb.seats_total}</span></td>
+        <td style="font-size:10px;color:var(--muted)">linked</td>
+      </tr>`;
+    });
+  });
+  html += `</tbody></table>`;
+  spBody.innerHTML = html;
+  spBody.dataset.sections = JSON.stringify(sections);
+}
+
+function _setAuto() {
+  const spBody = document.getElementById("sp-body");
+  const code = spBody.dataset.code;
+  const credits = parseFloat(spBody.dataset.credits) || 3;
+  if (!code) return;
+  if (manualPicks.has(code)) { _selectedCredits -= manualPicks.get(code).credits||0; manualPicks.delete(code); }
+  if (!selectedCourses.has(code)) { selectedCourses.add(code); _selectedCredits += credits; }
+  document.getElementById("pick-"+code.replace(/ /g,'_'))?.classList.add("selected");
+  closeSectionPicker();
+  renderReceipt();
+}
+
+function _selectSection(idx) {
+  const spBody = document.getElementById("sp-body");
+  const sections = JSON.parse(spBody.dataset.sections || "[]");
+  const code = spBody.dataset.code;
+  const credits = parseFloat(spBody.dataset.credits) || 3;
+  const section = sections[idx];
+  if (!section || !code) return;
+  if (selectedCourses.has(code)) { selectedCourses.delete(code); _selectedCredits -= credits; }
+  const existing = manualPicks.get(code);
+  if (existing) _selectedCredits -= existing.credits || 0;
+  const color = existing?.color || _COLORS[_colorIdx++ % _COLORS.length];
+  manualPicks.set(code, {section, title: document.getElementById("sp-title")?.textContent||"", credits, color});
+  _selectedCredits += credits;
+  document.getElementById("pick-"+code.replace(/ /g,'_'))?.classList.add("selected");
+  closeSectionPicker();
+  renderReceipt();
+}
+
+function closeSectionPicker() {
+  document.getElementById("sect-picker-bg").style.display = "none";
+}
+
+async function runSchedule() {
+  const out = document.getElementById("schedules-out");
+  const hasAuto = selectedCourses.size > 0;
+  const hasManual = manualPicks.size > 0;
+  if (!hasAuto && !hasManual) return;
+
+  if (!hasAuto) { _drawManualSchedule(out); return; }
+
+  out.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Building schedule...</div>`;
+  try {
+    const res = await fetch(`${API}/build-schedule`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({student_profile: student, selected_courses: [...selectedCourses]}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    hasManual ? _drawMixedSchedule(data.schedules[0], out) : drawSchedules(data.schedules, out);
+  } catch(err) {
+    out.innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+  }
+}
+
+function _addPickEvents(pick, code, events) {
+  const addMeetings = (meetings) => {
+    (meetings||[]).forEach(mtg => {
+      const sm = _parseMins(mtg.start_time), em = _parseMins(mtg.end_time);
+      if (sm && em) _splitDays(mtg.days)
+        .forEach(day => events.push({day, start_min:sm, end_min:em, course_id:code, color:pick.color}));
+    });
+  };
+  addMeetings(pick.section.meetings);
+  if (pick.labSection) addMeetings(pick.labSection.meetings);
+}
+
+function _drawManualSchedule(out) {
+  const events = [], courses = [];
+  manualPicks.forEach((pick, code) => {
+    courses.push({...pick.section, course_id: code, title: pick.title, credits: pick.credits, color: pick.color, pinned: true});
+    _addPickEvents(pick, code, events);
+  });
+  _renderScheduleCard(events, courses, [], null, out);
+}
+
+function _drawMixedSchedule(autoSched, out) {
+  if (!autoSched) { _drawManualSchedule(out); return; }
+  const manualEvents = [], manualCourses = [];
+  manualPicks.forEach((pick, code) => {
+    manualCourses.push({...pick.section, course_id: code, title: pick.title, credits: pick.credits, color: pick.color, pinned: true});
+    _addPickEvents(pick, code, manualEvents);
+  });
+  const allEvents = [...(autoSched.events||[]), ...manualEvents];
+  const allCourses = [...(autoSched.courses||[]).map(c => ({...c, pinned:false})), ...manualCourses];
+  _renderScheduleCard(allEvents, allCourses, _findConflicts(allEvents), autoSched.failed, out);
+}
+
+function _renderScheduleCard(events, courses, conflicts, failed, out) {
+  const cr = courses.reduce((a,c) => a+(c.credits||0), 0);
+  let html = `<div style="margin-top:16px"><div class="sched-card">
+    <div class="sched-head">
+      <span class="sched-label">Your Schedule</span>
+      <span class="sched-cr">${cr} credits</span>
+      <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" style="margin-left:auto;padding:4px 10px;border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--muted);background:none;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇ PDF</button>
+    </div>
+    ${conflicts.length ? `<div style="padding:7px 12px;background:var(--amber-bg);border-bottom:1px solid var(--amber-bdr);font-size:11px;color:var(--amber)">⚠ Time conflict: ${conflicts.join(", ")}</div>` : ""}
+    ${buildCalendar(events)}
+    <div class="sched-list">`;
+  courses.forEach((c, ci) => {
+    const color = c.color || _COLORS[ci%_COLORS.length];
+    const score = c.justin_score!=null ? c.justin_score.toFixed(1) : c.cs_avg_score!=null ? c.cs_avg_score.toFixed(1) : "N/A";
+    const time = (c.meetings||[]).map(fmtMtg).join(", ") || "TBA";
+    html += `<div class="sched-row" onclick="openCourse('${c.course_id}')" style="align-items:flex-start;padding:7px 6px">
+      <div class="sched-dot" style="background:${color};margin-top:4px"></div>
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+          <span class="sched-code" style="color:${color}">${c.course_id}</span>
+          <span style="font-size:12px;color:var(--text)">${c.title||""}</span>
+          ${c.pinned ? `<span style="font-size:9px;background:var(--green-bg);border:1px solid var(--green-bdr);color:var(--green);border-radius:10px;padding:1px 6px">pinned</span>` : ""}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.instructor} · <span style="font-family:var(--mono)">${time}</span></div>
+      </div>
+      <span class="sched-score" style="margin-top:2px">★ ${score}</span>
+    </div>`;
+  });
+  if (failed?.length) html += `<div style="font-size:10px;color:var(--red);padding:4px 6px">⚠ No slot found: ${failed.join(", ")}</div>`;
+  html += `</div></div></div>`;
+  out.innerHTML = html;
+}
+
+function _findConflicts(events) {
+  const bad = new Set();
+  for (let i = 0; i < events.length; i++)
+    for (let j = i+1; j < events.length; j++) {
+      const a = events[i], b = events[j];
+      if (a.day === b.day && a.start_min < b.end_min && b.start_min < a.end_min)
+        bad.add(a.course_id), bad.add(b.course_id);
+    }
+  return [...bad];
+}
+
+function _splitDays(days) {
+  // "TTh" → R for Thursday, then single chars filtered to MTWRF
+  return (days||"").replace(/Th/gi, 'R').split('').filter(d => 'MTWRF'.includes(d));
+}
+
+function _parseMins(t) {
+  if (!t) return null;
+  const m = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return null;
+  let h = parseInt(m[1]), mn = parseInt(m[2]);
+  if (m[3].toUpperCase()==="PM" && h!==12) h+=12;
+  if (m[3].toUpperCase()==="AM" && h===12) h=0;
+  return h*60+mn;
+}
+
+const _COLORS = ["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6"];
+
+function _jsConflict(s1, s2) {
+  for (const m1 of (s1.meetings||[])) {
+    const days1 = _splitDays(m1.days||'');
+    const sm1 = _parseMins(m1.start_time), em1 = _parseMins(m1.end_time);
+    if (!sm1 || !em1) continue;
+    for (const m2 of (s2.meetings||[])) {
+      const days2 = _splitDays(m2.days||'');
+      const sm2 = _parseMins(m2.start_time), em2 = _parseMins(m2.end_time);
+      if (!sm2 || !em2) continue;
+      if (days1.some(d => days2.includes(d)) && sm1 < em2 && sm2 < em1) return true;
+    }
+  }
+  return false;
+}
+
+function _sectionConflictCodes(s) {
+  const conflicts = [];
+  manualPicks.forEach((pick, code) => { if (_jsConflict(s, pick.section)) conflicts.push(code); });
+  return conflicts;
+}
+
+function drawSchedules(schedules, out) {
+  const labels = ["Best Professors","Morning Focus","Afternoon Focus"];
+  let html = `<div class="schedules-wrap">`;
+  schedules.forEach((sched, i) => {
+    const cr = sched.courses.reduce((a,c) => a + (c.credits||0), 0);
+    html += `<div class="sched-card">
+      <div class="sched-head">
+        <span class="sched-label">Schedule ${i+1} — ${labels[i]}</span>
+        <span class="sched-cr">${cr} credits</span>
+        <button class="pdf-btn" onclick="downloadSchedulePDF(this.closest('.sched-card'))" style="margin-left:auto;padding:4px 10px;border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--muted);background:none;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇ PDF</button>
+      </div>
+      ${buildCalendar(sched.events)}
+      <div class="sched-list">`;
+    sched.courses.forEach((c, ci) => {
+      const color = c.color || _COLORS[ci % _COLORS.length];
+      const score = c.justin_score != null ? c.justin_score.toFixed(1) : "N/A";
+      const time = (c.meetings || []).map(fmtMtg).filter(Boolean).join(", ") || "TBA";
+      html += `<div class="sched-row" onclick="openCourse('${c.course_id}')" style="align-items:flex-start;padding:7px 6px">
+        <div class="sched-dot" style="background:${color};margin-top:4px"></div>
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+            <span class="sched-code" style="color:${color}">${c.course_id}</span>
+            <span style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title || ""}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.instructor} · <span style="font-family:var(--mono)">${time}</span></div>
+        </div>
+        <span class="sched-score" style="margin-top:2px">★ ${score}</span>
+      </div>`;
+    });
+    if (sched.failed?.length)
+      html += `<div style="font-size:10px;color:var(--red);padding:4px 6px">⚠ No slot: ${sched.failed.join(", ")}</div>`;
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  out.innerHTML = html;
+}
+
+function buildCalendar(events) {
+  const START = 8*60, END = 20*60, SLOT = 30;
+  const days = ["M","T","W","R","F"];
+  const labels = {M:"Mon",T:"Tue",W:"Wed",R:"Thu",F:"Fri"};
+  const rows = (END - START) / SLOT;
+  let html = `<table class="calendar" style="table-layout:fixed;width:100%">
+    <tr><th style="width:28px"></th>${days.map(d=>`<th>${labels[d]}</th>`).join("")}</tr>`;
+  for (let r = 0; r < rows; r++) {
+    const abs = START + r * SLOT;
+    const h = Math.floor(abs/60), m = abs % 60;
+    const label = m === 0 ? `${h>12?h-12:h}${h>=12?"p":"a"}` : "";
+    html += `<tr><td class="cal-time">${label}</td>`;
+    days.forEach(day => {
+      html += `<td class="cal-cell">`;
+      (events||[]).filter(ev => ev.day === day).forEach(ev => {
+        if (ev.start_min >= abs && ev.start_min < abs + SLOT) {
+          const h = Math.ceil((ev.end_min - ev.start_min) / SLOT) * 16;
+          html += `<div class="cal-evt" onclick="openCourse('${ev.course_id}')"
+            style="height:${h}px;background:${ev.color}22;border-left:2px solid ${ev.color};color:${ev.color}">
+            ${ev.course_id.split(" ")[1]||""}
+          </div>`;
+        }
+      });
+      html += `</td>`;
+    });
+    html += `</tr>`;
+  }
+  return html + `</table>`;
+}
+
+async function downloadSchedulePDF(cardEl) {
+  const btn = cardEl.querySelector('.pdf-btn');
+  const orig = btn ? btn.textContent : '';
+  if (btn) btn.textContent = '⏳';
+  try {
+    const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pxW = canvas.width / 2, pxH = canvas.height / 2;
+    const pdf = new jsPDF({ orientation: pxW > pxH ? 'landscape' : 'portrait', unit: 'px', format: [pxW, pxH] });
+    pdf.addImage(imgData, 'PNG', 0, 0, pxW, pxH);
+    pdf.save('schedule.pdf');
+  } catch(e) { alert('PDF download failed: ' + e.message); }
+  finally { if (btn) btn.textContent = orig; }
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────────
+
+function renderSearch() {
+  const c = document.getElementById("main-content");
+  c.innerHTML = `
+    <div class="search-wrap">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Enter a course code (e.g. CSCI 3753) or keyword (e.g. "operating systems")</p>
+      <div class="search-row">
+        <input class="search-input" id="search-q" placeholder="CSCI 3753 or 'operating systems'..."
+          onkeydown="if(event.key==='Enter')doSearch()"/>
+        <button class="search-btn" onclick="doSearch()">Look Up</button>
+      </div>
+    </div>
+    <div id="search-out"></div>`;
+}
+
+async function doSearch() {
+  const q = document.getElementById("search-q").value.trim();
+  if (!q) return;
+  const out = document.getElementById("search-out");
+  out.innerHTML = `<div class="loading-msg"><span class="spinner"></span> Searching...</div>`;
+  try {
+    const res = await fetch(`${API}/course-detail`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({course_id: q, student_profile: student}),
+    });
+    if (res.ok) {
+      out.innerHTML = "";
+      drawCourseDetailInline(await res.json(), out);
+    } else {
+      // fallback to chat for name-based search
+      const r2 = await fetch(`${API}/chat`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({student_profile:student, message:`search for course: ${q}`, history:[]}),
+      });
+      if (!r2.ok) throw new Error(await r2.text());
+      const d = await r2.json();
+      out.innerHTML = `<div class="section-card" style="padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.7">${d.reply.replace(/\n/g,"<br>")}</div>`;
+    }
+  } catch(err) {
+    out.innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
+  }
+}
+
+function drawCourseDetailInline(d, container) {
+  const el = document.createElement("div");
+  el.className = "section-card";
+  el.innerHTML = buildCourseDetailHTML(d);
+  container.appendChild(el);
+}
+
+// ── Course Detail Modal ────────────────────────────────────────────────────────
+
+async function openCourse(code) {
+  if (!code || !student) return;
+  document.getElementById("modal-bg").className = "modal-bg show";
+  document.getElementById("m-code").textContent = code;
+  document.getElementById("m-title").textContent = "Loading...";
+  document.getElementById("m-tags").innerHTML = "";
+  document.getElementById("m-body").innerHTML = `<div class="loading-msg"><span class="spinner"></span></div>`;
+  try {
+    const res = await fetch(`${API}/course-detail`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({course_id: code, student_profile: student}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const d = await res.json();
+    document.getElementById("m-code").textContent = d.code;
+    document.getElementById("m-title").textContent = d.title;
+    document.getElementById("m-tags").innerHTML =
+      `<span class="badge ${d.credits?'neutral':''}">${d.credits||"?"} credits</span>
+       <span class="badge ${d.prereqs_met?'green':'red'}">${d.prereqs_met?"✓ prereqs met":"✗ prereqs missing"}</span>`;
+    document.getElementById("m-body").innerHTML = buildCourseDetailHTML(d);
+  } catch(err) {
+    document.getElementById("m-body").innerHTML = `<div class="error-msg">${err.message}</div>`;
+  }
+}
+
+function buildCourseDetailHTML(d) {
+  let html = "";
+  if (d.description)
+    html += `<div><div class="m-section-title">Description</div><div class="m-desc">${d.description}</div></div>`;
+
+  if (d.prereqs?.length) {
+    html += `<div><div class="m-section-title">Prerequisites</div>`;
+    d.prereqs.forEach(p => {
+      if (p.type === "required")
+        html += `<div class="prereq-row"><span class="prereq-mark" style="color:${p.met?'var(--green)':'var(--red)'}">${p.met?"✓":"✗"}</span>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--blue);cursor:pointer" onclick="closeModalDirect();openCourse('${p.code}')">${p.code}</span></div>`;
+      else if (p.type === "any_of")
+        html += `<div class="prereq-row"><span class="prereq-mark" style="color:${p.met?'var(--green)':'var(--red)'}">${p.met?"✓":"✗"}</span>
+          <span style="font-size:12px;color:var(--muted)">One of: ${p.options.join(", ")}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (d.sections?.length) {
+    html += `<div><div class="m-section-title">Sections — Fall 2026</div>
+      <table class="section-table"><thead><tr>
+        <th>Section</th><th>Instructor</th><th>Time</th><th>Justin Score</th><th>Seats</th>
+      </tr></thead><tbody>`;
+    d.sections.forEach(s => {
+      const score = s.justin_score;
+      const csAvg = s.cs_avg_score;
+      const csAvgCount = s.cs_avg_count;
+      const displayScore = score ?? csAvg;
+      const sc = displayScore == null ? "var(--muted)" : displayScore >= 70 ? "var(--green)" : displayScore >= 45 ? "var(--amber)" : "var(--red)";
+      const mtg = (s.meetings||[]).map(fmtMtg).join("<br>") || "TBA";
+      const bar = displayScore != null
+        ? `<div class="score-row">
+             <span class="score-num" style="color:${sc}">${displayScore}</span>
+             <div class="score-track"><div class="score-fill" style="width:${displayScore}%;background:${sc}"></div></div>
+           </div>
+           ${score == null ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">avg across ${csAvgCount} CS course${csAvgCount!==1?'s':''} (no data for this class)</div>` : ''}`
+        : `<span style="color:var(--muted);font-size:11px">No FCQ data</span>`;
+      html += `<tr>
+        <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${s.section}</span></td>
+        <td style="font-size:12px">${s.instructor}</td>
+        <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${mtg}</td>
+        <td>${bar}</td>
+        <td><span style="font-family:var(--mono);font-size:11px;color:${s.seats_available>0?'var(--green)':'var(--red)'}">${s.seats_available}/${s.seats_total}</span></td>
+      </tr>`;
+      if (s.fcq_metrics && Object.keys(s.fcq_metrics).length) {
+        const order = ["Feedback","Grading","Questions","Challenge","Reflect","Connect","Discuss","Tech"];
+        html += `<tr><td colspan="5" style="padding:6px 8px 10px">
+          <div class="metrics-grid">`;
+        order.forEach(k => {
+          if (s.fcq_metrics[k] != null) {
+            const v = s.fcq_metrics[k];
+            const c = v >= 4.5 ? "var(--green)" : v >= 3.5 ? "var(--amber)" : "var(--red)";
+            html += `<div class="metric-chip"><div class="metric-name">${k}</div>
+              <div class="metric-val" style="color:${c}">${v.toFixed(1)}</div></div>`;
+          }
+        });
+        html += `</div></td></tr>`;
+      }
+      (s.labs||[]).forEach(lb => {
+        const lm = (lb.meetings||[]).map(fmtMtg).join(" / ") || "TBA";
+        html += `<tr style="opacity:.75;background:var(--bg)">
+          <td style="padding-left:16px"><span class="badge gold">${lb.type||"LAB"}</span></td>
+          <td style="color:var(--muted);font-size:11px">§${lb.section}</td>
+          <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${lm}</td><td></td>
+          <td><span style="font-family:var(--mono);font-size:10px;color:${lb.seats_available>0?'var(--green)':'var(--red)'}">${lb.seats_available}/${lb.seats_total}</span></td>
+        </tr>`;
+      });
+    });
+    html += `</tbody></table></div>`;
+  } else {
+    html += `<div style="color:var(--muted);font-size:12px">Not offered Fall 2026.</div>`;
+  }
+  return html;
+}
+
+function closeModal(e) { if (e.target.id === "modal-bg") closeModalDirect(); }
+function closeModalDirect() { document.getElementById("modal-bg").className = "modal-bg"; }
+
+function fmtMtg(m) {
+  const days = m.days || "", s = m.start_time || "", e = m.end_time || "";
+  if (!s && days.match(/\d/)) return days;
+  return `${days} ${s}${s&&e?"–"+e:""}`.trim();
+}
+</script>
+</body>
+</html>

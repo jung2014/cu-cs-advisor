@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /Users/justinnguyen/Downloads/ComputerSci/chatbot/data/static/*.json /Users/justinnguyen/Downloads/ComputerSci/chatbot/data/semester/fall2026/*.json)",
+      "Bash(python3 -c \"import json; data = json.load\\(open\\('/Users/justinnguyen/Downloads/ComputerSci/chatbot/data/semester/fall2026/schedule.json'\\)\\); print\\(f'Total sections: {len\\(data\\)}'\\); print\\(json.dumps\\(data[0] if data else {}, indent=2\\)\\)\")",
+      "Bash(python3 -c ':*)",
+      "Bash(ls -la /Users/justinnguyen/Downloads/ComputerSci/chatbot/*.py)",
+      "Bash(python3)",
+      "Bash(python course_catalog_scraper.py)",
+      "Bash(python3 course_catalog_scraper.py)",
+      "Bash(python3 schedule_scraper.py)",
+      "Bash(brew install:*)",
+      "Bash(ollama pull:*)",
+      "Bash(brew services:*)",
+      "Bash(python3 chat.py)",
+      "Bash(curl -s http://localhost:8001/docs)",
+      "Bash(pip3 install:*)",
+      "Bash(lsof -ti:8001)",
+      "Bash(xargs kill:*)",
+      "Bash(python3 /Users/justinnguyen/Downloads/ComputerSci/chatbot/chat.py)",
+      "Bash(python3 /Users/justinnguyen/Downloads/ComputerSci/chatbot/transcript.py /Users/justinnguyen/Downloads/JustinNguyenCUBoulderUnofficialTranscript.pdf)"
+    ]
+  }
+}
