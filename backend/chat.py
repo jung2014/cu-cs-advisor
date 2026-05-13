@@ -749,7 +749,7 @@ class CourseDetailRequest(BaseModel):
 @app.post("/requirements")
 async def requirements_endpoint(req: RequirementsRequest):
     student = req.student_profile
-    major = student.get("major", "")
+    major = student.get("major", "") or "Computer Science - Bachelor of Science (BSCS)"
     major_reqs = get_requirements_for_major(major, DATA)
     if not major_reqs:
         raise HTTPException(404, f"Requirements not found for: {major}")
@@ -1043,8 +1043,8 @@ async def hss_courses_endpoint(level: str = "all"):
 
 @app.post("/upload-audit")
 async def upload_audit(req: AuditRequest):
-    if not req.text or len(req.text.strip()) < 100:
-        raise HTTPException(400, "Audit text too short — paste the full degree audit")
+    if not req.text or not req.text.strip():
+        raise HTTPException(400, "Audit text is empty")
     profile = parse_audit(req.text)
     return {"student_profile": profile}
 
